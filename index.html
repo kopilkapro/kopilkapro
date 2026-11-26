@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>KopilkaPro</title>
+  <script src="https://telegram.org"></script>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #181c24;
+      --accent: #4f8cff;
+      --accent-green: #22c55e;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --border: #262c3a;
+    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body {
+      margin: 0; padding: 16px; background: var(--bg); color: var(--text);
+      display: flex; justify-content: center;
+    }
+    .app { width: 100%; max-width: 420px; }
+    .header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
+    }
+    .logo { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; }
+    .logo span { color: var(--accent); }
+    .badge {
+      background: #1e293b; color: #60a5fa; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 18px; margin-bottom: 14px;
+    }
+    .goal-title { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+    .goal-name { font-size: 22px; font-weight: 700; margin-bottom: 14px; }
+    .numbers { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .current { font-size: 26px; font-weight: 800; color: var(--accent-green); }
+    .target { font-size: 14px; color: var(--muted); }
+    .progress-bg {
+      width: 100%; height: 12px; background: #262c3a; border-radius: 999px; overflow: hidden; margin-bottom: 10px;
+    }
+    .progress-fill {
+      height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent-green)); transition: width 0.3s ease;
+    }
+    .stats-row {
+      display: flex; justify-content: space-between; font-size: 13px; color: var(--muted);
+    }
+    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    button {
+      border: none; border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform 0.1s;
+    }
+    button:active { transform: scale(0.98); }
+    .btn-primary { background: var(--accent); color: white; width: 100%; }
+    .btn-quick { background: #222834; color: var(--text); border: 1px solid var(--border); }
+    .btn-outline { background: transparent; color: var(--muted); border: 1px solid var(--border); width: 100%; margin-top: 6px; }
+    input {
+      width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border);
+      background: #11141a; color: var(--text); font-size: 15px; margin-bottom: 10px;
+    }
+    .history-item {
+      display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px;
+    }
+    .history-item:last-child { border-bottom: none; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div class="logo">Kopilka<span>Pro</span></div>
+      <div class="badge" id="streakBadge">🔥 Серия: 0 дн.</div>
+    </div>
+
+    <!-- Главный экран цели -->
+    <div class="card" id="mainScreen">
+      <div class="goal-title">МОЯ ГЛАВНАЯ ЦЕЛЬ</div>
+      <div class="goal-name" id="displayGoalName">Учёба мечты</div>
+
+      <div class="numbers">
+        <div class="current"><span id="displayCurrent">0</span> ₽</div>
+        <div class="target">из <span id="displayTarget">100 000</span> ₽</div>
+      </div>
+
+      <div class="progress-bg">
+        <div class="progress-fill" id="progressBar"></div>
+      </div>
+
+      <div class="stats-row">
+        <span id="percentText">Выполнено: 0%</span>
+        <span id="dailyPlanText">План: 0 ₽/день</span>
+      </div>
+    </div>
+
+    <!-- Быстрое пополнение -->
+    <div class="card" id="actionScreen">
+      <div class="goal-title" style="margin-bottom:10px;">ПОПОЛНИТЬ КОПИЛКУ</div>
+      <div class="btn-grid">
+        <button class="btn-quick" onclick="addMoney(100, 'Отказ от снеков')">+ 100 ₽ (сэкономил)</button>
+        <button class="btn-quick" onclick="addMoney(500, 'Отложил в цель')">+ 500 ₽</button>
+      </div>
+      <input type="number" id="customAmount" placeholder="Другая сумма в ₽..." />
+      <button class="btn-primary" onclick="addCustomMoney()">Добавить в цель</button>
+      <button class="btn-outline" onclick="toggleSettings()">⚙️ Настроить мою цель</button>
+    </div>
+
+    <!-- Настройка цели -->
+    <div class="card hidden" id="settingsScreen">
+      <div class="goal-title" style="margin-bottom:10px;">НАСТРОЙКА МОЕЙ ЦЕЛИ</div>
+      <input type="text" id="inputName" placeholder="Название цели (например: Вуз / Ноутбук)" />
+      <input type="number" id="inputTarget" placeholder="Нужная сумма (₽)" />
+      <input type="number" id="inputDays" placeholder="За сколько дней накопить?" />
+      <button class="btn-primary" onclick="saveGoal()">Сохранить цель</button>
+      <button class="btn-outline" onclick="toggleSettings()">Назад</button>
+    </div>
+
+    <!-- История -->
+    <div class="card">
+      <div class="goal-title" style="margin-bottom:8px;">ПОСЛЕДНИЕ ШАГИ К ЦЕЛИ</div>
+      <div id="historyList" style="color: var(--muted); font-size: 13px;">Пока нет пополнений — сделай первый шаг!</div>
+    </div>
+  </div>
+
+  <script>
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
+      window.Telegram.WebApp.expand();
+    }
+
+    let state = JSON.parse(localStorage.getItem('kopilkaProData')) || {
+      name: 'Моя большая цель',
+      target: 100000,
+      current: 0,
+      days: 365,
+      streak: 0,
+      lastDate: null,
+      history: []
+    };
+
+    function saveState() {
+      localStorage.setItem('kopilkaProData', JSON.stringify(state));
+      render();
+    }
+
+    function render() {
+      document.getElementById('displayGoalName').innerText = state.name;
+      document.getElementById('displayCurrent').innerText = state.current.toLocaleString('ru-RU');
+      document.getElementById('displayTarget').innerText = state.target.toLocaleString('ru-RU');
+      document.getElementById('streakBadge').innerText = `🔥 Серия: ${state.streak} дн.`;
+
+      const pct = Math.min(100, Math.round((state.current / state.target) * 100)) || 0;
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('percentText').innerText = `Выполнено: ${pct}%`;
+
+      const left = Math.max(0, state.target - state.current);
+      const daily = state.days > 0 ? Math.ceil(left / state.days) : left;
+      document.getElementById('dailyPlanText').innerText = `План: ${daily.toLocaleString('ru-RU')} ₽/день`;
+
+      const list = document.getElementById('historyList');
+      if (state.history.length === 0) {
+        list.innerHTML = 'Пока нет пополнений — сделай первый шаг!';
+      } else {
+        list.innerHTML = state.history.slice(0, 5).map(item =>
+          `<div class="history-item"><span>${item.note}</span><strong style="color:#22c55e;">+${item.amount} ₽</strong></div>`
+        ).join('');
+      }
+    }
+
+    function addMoney(amount, note) {
+      if (!amount || amount <= 0) return;
+      state.current += amount;
+      const today = new Date().toDateString();
+      if (state.lastDate !== today) {
+        state.streak += 1;
+        state.lastDate = today;
+      }
+      state.history.unshift({ amount, note });
+      saveState();
+    }
+
+    function addCustomMoney() {
+      const val = parseInt(document.getElementById('customAmount').value, 10);
+      if (val > 0) {
+        addMoney(val, 'Пополнение цели');
+        document.getElementById('customAmount').value = '';
+      }
+    }
+
+    function toggleSettings() {
+      document.getElementById('settingsScreen').classList.toggle('hidden');
+      document.getElementById('actionScreen').classList.toggle('hidden');
+      document.getElementById('inputName').value = state.name;
+      document.getElementById('inputTarget').value = state.target;
+      document.getElementById('inputDays').value = state.days;
+    }
+
+    function saveGoal() {
+      const name = document.getElementById('inputName').value.trim();
+      const target = parseInt(document.getElementById('inputTarget').value, 10);
+      const days = parseInt(document.getElementById('inputDays').value, 10);
+      if (name) state.name = name;
+      if (target > 0) state.target = target;
+      if (days > 0) state.days = days;
+      toggleSettings();
+      saveState();
+    }
+
+    render();
+  </script>
+</body>
+  </html>
+  
